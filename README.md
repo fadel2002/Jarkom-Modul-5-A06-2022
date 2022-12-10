@@ -174,3 +174,51 @@ Karena pemberian IP subnet Forger, Desmond, Blackbell, dan Briar harus secara di
 apt-get update
 echo "10.2.0.19" | apt-get install isc-dhcp-relay -y
 ```
+## Nomor 1
+
+### Soal
+
+Agar topologi yang kalian buat dapat mengakses keluar, kalian diminta untuk mengkonfigurasi Strix menggunakan iptables, tetapi Loid tidak ingin menggunakan MASQUERADE.
+
+### Penyelesaian
+
+Agar dapat terhubung dengan internet, dibutuhkan iptables pada Strix, namun karena tidak boleh menggunakan MASQUERADE, digunakan pengganti yaitu
+
+```bash
+IP=$(ip a s eth0 | egrep -o 'inet [0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | cut -d' ' -f2)
+
+iptables -t nat -A POSTROUTING -o eth0 -j SNAT --to-source $IP -s 10.2.0.0/21
+```
+
+Pada command yang atas adalah untuk mengambil IP yang didapat oleh Strix untuk eth0 karena IP yang didapatkan dinamis dari DHCP dan alamat source diubah pada tahap POSTROUTING menjadi IP Strix.
+
+## Nomor 2
+
+### Soal
+
+Kalian diminta untuk melakukan drop semua TCP dan UDP dari luar Topologi kalian pada server yang merupakan DHCP Server demi menjaga keamanan.
+
+### Penyelesaian
+
+Menjalankan script di bawah pada DHCP Server (WISE) yang berfungsi untuk drop TCP dan UDP yang berasal dari luar jaringan 10.2.0.0/21 (jaringan topologi)
+
+```bash
+iptables -A INPUT -p udp ! -s 10.2.0.0/21 -j DROP
+iptables -A INPUT -p tcp ! -s 10.2.0.0/21 -j DROP
+```
+
+## Nomor 3
+
+### Soal
+
+Loid meminta kalian untuk membatasi DHCP dan DNS Server hanya boleh menerima maksimal 2 koneksi ICMP secara bersamaan menggunakan iptables, selebihnya didrop.
+
+### Penyelesaian
+
+Pada DNS(Eden) dan DHCP (WISE) dijalankan script
+
+```bash
+iptables -A INPUT -p icmp -m connlimit --connlimit-above 2 --connlimit-mask 0 -j DROP
+```
+
+Gunanya untuk membatasi koneksi sehingga untuk koneksi diatas 2 di drop.
