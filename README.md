@@ -222,3 +222,51 @@ iptables -A INPUT -p icmp -m connlimit --connlimit-above 2 --connlimit-mask 0 -j
 ```
 
 Gunanya untuk membatasi koneksi sehingga untuk koneksi diatas 2 di drop.
+
+## Nomor 4
+
+## Soal
+
+Akses menuju Web Server hanya diperbolehkan disaat jam kerja yaitu Senin sampai Jumat pada pukul 07.00 - 16.00.
+
+## Penyelesaian
+
+Pada Web Server (Garden dan SSS) dijalankan script
+
+```bash
+iptables -A INPUT -m time --weekdays Sat,Sun -j REJECT
+iptables -A INPUT -m time --timestart 00:00 --timestop 06:59 --weekdays Mon,Tue,Wed,Thu,Fri -j REJECT
+iptables -A INPUT -m time --timestart 16:01 --timestop 23:59 --weekdays Mon,Tue,Wed,Thu,Fri -j REJECT
+```
+
+## Nomor 5
+
+### Soal
+
+Karena kita memiliki 2 Web Server, Loid ingin Ostania diatur sehingga setiap request dari client yang mengakses Garden dengan port 80 akan didistribusikan secara bergantian pada SSS dan Garden secara berurutan dan request dari client yang mengakses SSS dengan port 443 akan didistribusikan secara bergantian pada Garden dan SSS secara berurutan.
+
+### Penyelesaian
+
+Pengaturan dilakukan pada Ostania karena yang bertugas mengatur laju internet untuk Garden dan SSS (Web Server). Di sini agar dapat membagi digunakan match statistic dan IP tujuannya.
+
+```bash
+iptables -t nat -A PREROUTING -p tcp -s 10.2.0.0/21 --dport 80 -d 10.2.0.10 -m state --state NEW -m statistic --mode nth --every 2 --packet 0 -j DNAT --to-destination 10.2.0.10:80
+iptables -t nat -A PREROUTING -p tcp -s 10.2.0.0/21 --dport 80 -d 10.2.0.10 -m state --state NEW -m statistic --mode nth --every 1 --packet 0 -j DNAT --to-destination 10.2.0.11:80
+
+iptables -t nat -A PREROUTING -p tcp -s 10.2.0.0/21 --dport 443 -d 10.2.0.11 -m state --state NEW -m statistic --mode nth --every 2 --packet 0 -j DNAT --to-destination 10.2.0.11:80
+iptables -t nat -A PREROUTING -p tcp -s 10.2.0.0/21 --dport 443 -d 10.2.0.11 -m state --state NEW -m statistic --mode nth --every 1 --packet 0 -j DNAT --to-destination 10.2.0.10:80
+```
+
+## Nomor 6
+
+### Soal
+
+Karena Loid ingin tau paket apa saja yang di-drop, maka di setiap node server dan router ditambahkan logging paket yang di-drop dengan standard syslog level.
+
+### Penyelesaian
+
+Tidak selesai karena terkendala cara mengaturnya, setelah mencoba-coba membuat log berakhir dengan jaringan tidak dapat bekerja.
+
+## Dokumentasi
+
+![Dokumentasi](images/dokumentasi.png)
